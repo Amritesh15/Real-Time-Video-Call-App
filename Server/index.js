@@ -5,6 +5,7 @@ import cookieParser from "cookie-parser";
 import bcrypt from "bcryptjs";
 import dbConnect from "./db/dbConnect.js";
 import authRoutes from "./Route/auth.js";
+import userRoutes from "./Route/user.js";
 
 dotenv.config();
 const app=express();
@@ -31,6 +32,7 @@ app.use(express.urlencoded({extended:true}));
 app.use(cookieParser());
 app.use("/public", express.static("public"));
 app.use("/api/auth",authRoutes);
+app.use("/api/user",userRoutes);
 app.get("/",(req,res)=>{
     res.send("Hello World");
 });

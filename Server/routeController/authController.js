@@ -1,5 +1,5 @@
 import User from "../Schema/userSchema.js";
-
+import jwtToken from "../utils/jwtToken.js";
 import bcrypt from "bcryptjs";
 const image ="../public/default_pic.jpeg";
 const Signup=async(req,res)=>{
@@ -23,7 +23,7 @@ const Signup=async(req,res)=>{
     
 }
 catch (error) {
-    res.status(500).json({message:"Internal server error"});
+    res.status(500).send({success:false,message:error});
 }
 };
 
@@ -39,13 +39,38 @@ const Login=async(req,res)=>{
         if(!isPasswordCorrect){
             return res.status(400).json({message:"Invalid credentials"});
         }
-        res.status(200).json({message:"Login successful",user:user});
+        const token=jwtToken(user._id,res);
+        res.status(200).send({
+            _id:user._id,
+            fullName:user.fullName,
+            username:user.username,
+            profilePicture:user.profilePicture,
+            email:user.email,
+            gender:user.gender,
+            message:"Login successful",
+            token:token 
+        });
     }
     catch (error) {
-        res.status(500).json({message:"Internal server error"});
+        res.status(500).send({success:false,message:error});
     }
 
 
 };
 
-export { Signup, Login };
+
+const Logout=async(req,res)=>{
+    try {
+        res.clearCookie("jwt",{
+            path:"/",
+            httpOnly:true,
+            secure:true
+
+        })
+    }
+    catch (error) {
+        res.status(500).send({success:false,message:error});
+    }
+}
+
+export { Signup, Login ,Logout};
