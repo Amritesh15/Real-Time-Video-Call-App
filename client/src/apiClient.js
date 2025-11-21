@@ -5,7 +5,7 @@ const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
   withCredentials: true, // This ensures cookies are sent with requests
 });
-console.log('API Base URL:', import.meta.env.VITE_API_BASE_URL);
+//console.log('API Base URL:', import.meta.env.VITE_API_BASE_URL);
 
 
 // Optionally, you can add request and response interceptors

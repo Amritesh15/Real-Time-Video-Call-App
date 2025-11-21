@@ -26,6 +26,15 @@ function Auth ({type}){
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
+
+    const handleIdentifierChange = (e) => {
+        const value = e.target.value;
+        setFormData((prev) => ({
+            ...prev,
+            email: value,
+            username: value,
+        }));
+    };
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (type === 'signup' && formData.password !== formData.confirmPassword) {
@@ -102,11 +111,11 @@ function Auth ({type}){
                     <div className="flex items-center border rounded-lg p-2 bg-gray-100">
                         <FaEnvelope className="text-purple-500 mr-2" />
                         <input
-                            type="email"
+                            type="text"
                             name="email"
-                            placeholder="Email"
+                            placeholder={type === 'signup' ? 'Email' : 'Email or Username'}
                             className="w-full bg-transparent focus:outline-none"
-                            onChange={handleChange}
+                            onChange={type === 'signup' ? handleChange : handleIdentifierChange}
                             required
                         />
                     </div>
