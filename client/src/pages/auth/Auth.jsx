@@ -6,10 +6,12 @@ import {FaEnvelope} from 'react-icons/fa'
 import apiClient from '../../apiClient'
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { useUser } from '../../context/UserContext'
 
 
 
 function Auth ({type}){
+    const {updateUser} = useUser();
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
         fullname: '',
@@ -33,7 +35,20 @@ function Auth ({type}){
         setLoading(true);
         try {
             const endpoint = type === 'signup' ? '/auth/signup' : '/auth/login';
-            const response = await apiClient.post(endpoint, formData);
+            // Transform data to match server expectations
+            const requestData = type === 'signup' 
+                ? {
+                    fullName: formData.fullname,
+                    username: formData.username,
+                    email: formData.email,
+                    password: formData.password,
+                    gender: formData.gender
+                  }
+                : {
+                    username: formData.email, // Server accepts email or username
+                    password: formData.password
+                  };
+            const response = await apiClient.post(endpoint, requestData);
             toast.success(response.data.message || 'Success!');
             if(type === 'signup'){
                 navigate('/login')
@@ -45,7 +60,7 @@ function Auth ({type}){
                 const date = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
                 const expires = "expires=" + date.toUTCString();
                 document.cookie = `jwt=${response.data.token}; path=/; ${expires}`;
-                navigate('/')
+                navigate('/dashboard')
             }
         } catch (error) {
             toast.error(error.response?.data?.message || 'Something went wrong!');

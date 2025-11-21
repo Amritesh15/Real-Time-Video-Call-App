@@ -10,7 +10,8 @@ import userRoutes from "./Route/user.js";
 dotenv.config();
 const app=express();
 
-const allowedOrigins=[""];
+const allowedOrigins=process.env.client_url || "http://localhost:5173";
+
 
 const PORT=process.env.PORT || 5000;
 
