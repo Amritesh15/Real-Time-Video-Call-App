@@ -1,7 +1,9 @@
 import User from "../Schema/userSchema.js";
+import jwt from "jsonwebtoken";
+
 const isLogin=async(req,res,next)=>{
     try {
-        const token=req.cookies.jwt || req.headers.authorization.split(";").find(cookie=>cookie.trim().startsWith("jwt="))?.split("=")[1];
+        const token=req.cookies.jwt || req.headers.authorization?.split(";").find(cookie=>cookie.trim().startsWith("jwt="))?.split("=")[1];
         if(!token){
             return res.status(401).send({success:false,message:"Unauthorized"});
         }
