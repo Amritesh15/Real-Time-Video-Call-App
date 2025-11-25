@@ -14,25 +14,37 @@ import { Server } from "socket.io";
 dotenv.config();
 const app=express();
 
-const allowedOrigins=process.env.client_url || "http://localhost:5173";
+const allowedOrigins = process.env.client_url 
+    ? process.env.client_url.split(',').map(url => url.trim()) 
+    : ["http://localhost:5173"];
 
 
 const PORT=process.env.PORT || 5000;
 
 const server=createServer(app);
 
-app.use(cors({
-    origin: function(origin,callback){
-        if(!origin || allowedOrigins.indexOf(origin) !== -1){
-            callback(null,true);
-        }else{
-            callback(new Error("Not allowed by CORS"));
-        }
-
-    },
-    credentials:true,
-    methods:["GET","POST","PUT","DELETE"],
-}));
+// CORS middleware - skip Socket.io paths
+app.use((req, res, next) => {
+    // Skip CORS for Socket.io - it handles its own CORS
+    const url = req.url || '';
+    if(url.includes('/socket.io')){
+        return next();
+    }
+    // Apply CORS for all other routes
+    cors({
+        origin: function(origin, callback){
+            if(!origin || allowedOrigins.indexOf(origin) !== -1){
+                callback(null, true);
+            }else{
+                console.log('CORS blocked - Origin:', origin);
+                console.log('CORS blocked - Allowed:', allowedOrigins);
+                callback(new Error("Not allowed by CORS"));
+            }
+        },
+        credentials:true,
+        methods:["GET","POST","PUT","DELETE"],
+    })(req, res, next);
+});
 
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
@@ -47,7 +59,13 @@ app.get("/",(req,res)=>{
 const io=new Server(server,{
     pingTimeout:60000,
     cors:{
-        origin:allowedOrigins[0],
+        origin: function(origin, callback){
+            if(!origin || allowedOrigins.indexOf(origin) !== -1){
+                callback(null, true);
+            }else{
+                callback(new Error("Not allowed by CORS"));
+            }
+        },
         methods:["GET","POST"],
         credentials:true,
     },

@@ -1,7 +1,7 @@
 import User from "../Schema/userSchema.js";
 import jwtToken from "../utils/jwtToken.js";
 import bcrypt from "bcryptjs";
-const image ="../public/default_pic.jpeg";
+const image ="/public/default_pic.jpeg";
 
 const Signup=async(req,res)=>{
     try {
