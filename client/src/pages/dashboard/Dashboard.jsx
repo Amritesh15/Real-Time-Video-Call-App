@@ -4,6 +4,7 @@ import { useUser } from '../../context/UserContext'
 import { FaTimes, FaDoorClosed, FaBars, FaPhoneAlt, FaPhoneSlash } from 'react-icons/fa'
 import apiClient from '../../apiClient'
 import { getSocket, disconnectSocket } from '../socket/Socket'
+import Peer from "simple-peer";
 
 function Dashboard() {
   const { user, updateUser } = useUser();
@@ -17,7 +18,7 @@ function Dashboard() {
   const [socketId, setSocketId] = useState(null);
   const hasJoined = useRef(false);
   const [onlineUsers, setOnlineUsers] = useState([]);
-  
+  const connectionRef=useRef();
   const myVideo=useRef();
   const[stream,setStream] = useState(null);
 
@@ -31,7 +32,9 @@ function Dashboard() {
   const [callAccepted, setCallAccepted] = useState(false);
   const [caller, setCaller] = useState(null);
   const [callerName, setCallerName] = useState('');
+  const[callerSignal, setCallerSignal] = useState(null);
   
+
   // Call functions
   const startCall = async () => {
     // TODO: Implement call functionality
@@ -44,19 +47,54 @@ function Dashboard() {
        myVideo.current.muted=true;
        myVideo.current.volume=0;
         }
-      }
-    
+      setIsSidebarOpen(false);
+
+      const socketInstance = getSocket();
+      const peerInstance = new Peer({
+        initiator: true, 
+        trickle: false,
+        stream: currentStream
+      });
+      
+      peerInstance.on('signal', (data) => {
+        socketInstance.emit('callUser', {
+          userToCall: showReceiverDetails?._id,
+          signal: data,
+          from: user._id,
+          name: user.username,
+          profilePicture: user.profilePicture,
+          email: user.email,
+        });
+      });
+      
+      peerInstance.on('stream', (remoteStream) => {
+        if(myVideo.current){
+          myVideo.current.srcObject = remoteStream;
+          myVideo.current.play();
+        }
+      });
+      
+      connectionRef.current = peerInstance;
+    }
     catch(error){
       console.error('Error starting call:', error);
     }
   };
   
   const endCallCleanup = () => {
-    // TODO: Implement call cleanup
+    if(connectionRef.current){
+      connectionRef.current.destroy();
+      connectionRef.current = null;
+    }
+    if(stream){
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
     setCallRejectedPopUp(false);
     setShowReceiverDetailsPopUp(false);
     setSelectedUser(null);
     setModalUser(null);
+    setIsSidebarOpen(true);
   };
   
   const handleAcceptCall = () => {
@@ -66,22 +104,46 @@ function Dashboard() {
   };
   
   const handleRejectCall = () => {
+    const socketInstance = getSocket();
+    if(socketInstance && caller){
+      socketInstance.emit('rejectCall', { 
+        to: caller._id, 
+        from: user._id,
+        name: user.username, 
+        profilePicture: user.profilePicture, 
+        email: user.email 
+      });
+    }
     setReceiveCall(false);
+    setCallAccepted(false);
     setCaller(null);
     setCallerName('');
-    // TODO: Implement reject call functionality
+    setCallerSignal(null);
   };
   // Initialize socket connection
   useEffect(() => {
     const socketInstance = getSocket();
-    console.log('Socket connected:', socketInstance);
     
-    if (user && socketInstance && !hasJoined.current){
+    // Wait for socket to connect before joining
+    const handleConnect = () => {
+      if (user && socketInstance && !hasJoined.current){
+        socketInstance.emit('join',{id:user._id,name:user.username});
+        hasJoined.current=true;
+      }
+    };
+    
+    // If already connected, join immediately
+    if (socketInstance?.connected && user && !hasJoined.current) {
       socketInstance.emit('join',{id:user._id,name:user.username});
       hasJoined.current=true;
+    } else if (socketInstance) {
+      // Wait for connection
+      socketInstance.on('connect', handleConnect);
     }
     
-    socketInstance.on("me",(id)=>{setSocketId(id);});
+    socketInstance.on("me",(id)=>{
+      setSocketId(id);
+    });
 
     socketInstance.on("getOnlineUsers",(users)=>{
       // Exclude current user from online users list
@@ -89,13 +151,39 @@ function Dashboard() {
       setOnlineUsers(filteredOnlineUsers);
     });
     
+    socketInstance.on("callUser",(data)=>{
+      const {signal,from,name,profilePicture,email}=data;
+      setCaller({
+        _id: from,
+        username: name,
+        profilePicture: profilePicture,
+        email: email
+      });
+      setCallerName(name);
+      setCallerSignal(signal);
+      setReceiveCall(true);
+    });
+
+    socketInstance.on("callRejected",(data)=>{
+      setCallRejectedPopUp(true);
+      setRejectorData({
+        _id: data.from,
+        username: data.name,
+        name: data.name,
+        profilePicture: data.profilePicture,
+        email: data.email
+      });
+    });
+
+    
     return () => {
+      socketInstance.off("connect", handleConnect);
       socketInstance.off("me");
       socketInstance.off("getOnlineUsers");
+      socketInstance.off("callUser");
+      socketInstance.off("callRejected");
     };
   }, [user]);
-
-  console.log('Online users:', onlineUsers);
   
   //get all users
   const allusers = async () => {
@@ -270,13 +358,13 @@ function Dashboard() {
   
         
         {selectedUser ? (
-          <div className='absolute bottom-[75px] md:bottom-0  right-1 bg-gray-900 rounded-lg oerflow-hidden shadow-lg'>
+          <div className='relative w-full h-screen bg-black flex items-center justify-center'>
             <video 
               ref={myVideo}
-              className='absolute top-0 left-0 w-full h-full object-contain rounded-lg'
+              className='fixed bottom-[75px] md:bottom-4 right-4 w-32 h-40 md:w-56 md:h-52 object-cover rounded-lg border-2 border-white shadow-2xl z-10'
               autoPlay
               playsInline
-              className='w-32 h-40 md:w-56 md:h-52 object-cover rounded-lg'
+              muted
             ></video>
           </div>
         ) : (
@@ -338,7 +426,7 @@ function Dashboard() {
                      startCall();
                      setShowReceiverDetailsPopUp(false);
                    }}
-                   className="bg-green-600 text-white px-4 py-1 rounded-lg w-28 flex items-center gap-2 justify-center"
+                   className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg w-28 flex items-center gap-2 justify-center transition-colors font-semibold"
                  >
                    Call <FaPhoneAlt />
                  </button>
@@ -349,7 +437,7 @@ function Dashboard() {
                      setSelectedUser(null);
                      setModalUser(null);
                    }}
-                   className="bg-gray-400 text-white px-4 py-1 rounded-lg w-28"
+                   className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg w-28 transition-colors font-semibold"
                  >
                    Cancel
                  </button>
@@ -378,7 +466,7 @@ function Dashboard() {
                    onClick={() => {
                      startCall();
                    }}
-                   className="bg-green-500 text-white px-4 py-1 rounded-lg w-28 flex gap-2 justify-center items-center"
+                   className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg w-28 flex gap-2 justify-center items-center transition-colors font-semibold"
                  >
                    Call Again <FaPhoneAlt />
                  </button>
@@ -388,7 +476,7 @@ function Dashboard() {
                      endCallCleanup();
                      setCallRejectedPopUp(false);
                    }}
-                   className="bg-red-500 text-white px-4 py-2 rounded-lg w-28 flex gap-2 justify-center items-center"
+                   className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg w-28 flex gap-2 justify-center items-center transition-colors font-semibold"
                  >
                    Back <FaPhoneSlash />
                  </button>
@@ -416,14 +504,16 @@ function Dashboard() {
                  <button
                    type="button"
                    onClick={handleAcceptCall}
-                   className="bg-green-500 text-white px-4 py-1 rounded-lg w-28 flex gap-2 justify-center items-center"
+                   style={{ backgroundColor: '#22c55e', color: 'white' }}
+                   className="hover:bg-green-600 text-white px-4 py-2 rounded-lg w-28 flex gap-2 justify-center items-center transition-colors font-semibold border-none"
                  >
                    Accept <FaPhoneAlt />
                  </button>
                  <button
                    type="button"
                    onClick={handleRejectCall}
-                   className="bg-red-500 text-white px-4 py-2 rounded-lg w-28 flex gap-2 justify-center items-center"
+                   style={{ backgroundColor: '#ef4444', color: 'white' }}
+                   className="hover:bg-red-600 text-white px-4 py-2 rounded-lg w-28 flex gap-2 justify-center items-center transition-colors font-semibold border-none"
                  >
                    Reject <FaPhoneSlash />
                  </button>

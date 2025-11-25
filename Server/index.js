@@ -36,8 +36,6 @@ app.use((req, res, next) => {
             if(!origin || allowedOrigins.indexOf(origin) !== -1){
                 callback(null, true);
             }else{
-                console.log('CORS blocked - Origin:', origin);
-                console.log('CORS blocked - Allowed:', allowedOrigins);
                 callback(new Error("Not allowed by CORS"));
             }
         },
@@ -70,18 +68,14 @@ const io=new Server(server,{
         credentials:true,
     },
 });
-console.log('Socket.io connected with cores');
 let onlineUsers=[];
 
 
 io.on("connection",(socket)=>{
-    console.log('Socket.io connected with cores');
-    
     socket.emit("me",socket.id);
      
     socket.on("join",(user)=>{
         if(!user || !user.id){
-            console.log('Invalid user data');
             return;
         }
 
@@ -95,6 +89,39 @@ io.on("connection",(socket)=>{
         io.emit("getOnlineUsers",onlineUsers);
     });
 
+    socket.on("callUser",(data)=>{
+        const {userToCall,signal,from,name,profilePicture,email}=data;
+        
+        // Try to find user in onlineUsers array first
+        const user=onlineUsers.find(u=>u.id===userToCall);
+        if(user){
+            socket.to(user.socketId).emit("callUser",{signal,from,name,profilePicture,email});
+        } else {
+            // Fallback: try to emit to the room (user.id room)
+            socket.to(userToCall).emit("callUser",{signal,from,name,profilePicture,email});
+        }
+    });
+
+    socket.on("rejectCall",(data)=>{
+        const {to, from, name, profilePicture, email}=data;
+        const user=onlineUsers.find(u=>u.id===to);
+        if(user){
+            socket.to(user.socketId).emit("callRejected",{
+                from: from,
+                name: name,
+                profilePicture: profilePicture,
+                email: email
+            });
+        } else {
+            // Fallback: try to emit to the room
+            socket.to(to).emit("callRejected",{
+                from: from,
+                name: name,
+                profilePicture: profilePicture,
+                email: email
+            });
+        }
+    });
     socket.on("disconnect",()=>{
         const disconnectedUser=onlineUsers.find(u=>u.socketId===socket.id);
         onlineUsers=onlineUsers.filter(u=>u.socketId!==socket.id);
