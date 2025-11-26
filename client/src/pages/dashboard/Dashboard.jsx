@@ -21,7 +21,7 @@ function Dashboard() {
   const connectionRef=useRef();
   const myVideo=useRef();
   const[stream,setStream] = useState(null);
-
+  const receiverVideo=useRef();
   const[showReceiverDetailsPopUp,setShowReceiverDetailsPopUp] = useState(false);
   const[showReceiverDetails,setShowReceiverDetails] = useState(null);
   
@@ -65,6 +65,13 @@ function Dashboard() {
           profilePicture: user.profilePicture,
           email: user.email,
         });
+      });
+      peerInstance.on("stream",(receiverStream)=>{
+        if(receiverVideo.current){
+          receiverVideo.current.srcObject = receiverStream;
+          receiverVideo.current.muted = false;
+          receiverVideo.current.volume = 1.0;
+        }
       });
       
       peerInstance.on('stream', (remoteStream) => {
@@ -358,43 +365,52 @@ function Dashboard() {
   
         
         {selectedUser ? (
-          <div className='relative w-full h-screen bg-black flex items-center justify-center'>
-            <video 
-              ref={myVideo}
-              className='fixed bottom-[75px] md:bottom-4 right-4 w-32 h-40 md:w-56 md:h-52 object-cover rounded-lg border-2 border-white shadow-2xl z-10'
+          <div>
+            <video
+              ref={receiverVideo}
+              className="top-0 left-0 w-full h-full object-contain rounded-lg border-2 border-white shadow-2xl z-10"
               autoPlay
               playsInline
               muted
             ></video>
+            <div className="relative w-full h-screen bg-black flex items-center justify-center">
+              <video
+                ref={myVideo}
+                className="fixed bottom-[75px] md:bottom-4 right-4 w-32 h-40 md:w-56 md:h-52 object-cover rounded-lg border-2 border-white shadow-2xl z-10"
+                autoPlay
+                playsInline
+                muted
+              ></video>
+            </div>
           </div>
         ) : (
-        <div>
-        <div className="flex items-center gap-5 mb-6 bg-gray-800 p-5 rounded-xl shadow-md">
-
-          <div className="w-20 h-20">
-            👋
-          </div>
           <div>
-            <h1 className="text-4xl font-extrabold bg-gradient-to-r from-blue-400 to-purple-500 text-transparent bg-clip-text">
-              Hey {user?.username || "Guest"}! 👋
-            </h1>
-            <p className="text-lg text-gray-300 mt-2">
-              Ready to <strong>connect with friends instantly?</strong>
-              Just <strong>select a user</strong> and start your video call! 🎥✨
-            </p>
-          </div>
-        </div>
+            <div className="flex items-center gap-5 mb-6 bg-gray-800 p-5 rounded-xl shadow-md">
+              <div className="w-20 h-20">
+                👋
+              </div>
+              <div>
+                <h1 className="text-4xl font-extrabold bg-gradient-to-r from-blue-400 to-purple-500 text-transparent bg-clip-text">
+                  Hey {user?.username || "Guest"}! 👋
+                </h1>
+                <p className="text-lg text-gray-300 mt-2">
+                  Ready to <strong>connect with friends instantly?</strong>
+                  Just <strong>select a user</strong> and start your video call! 🎥✨
+                </p>
+              </div>
+            </div>
 
-        {/* Instructions */}
-        <div className="bg-gray-800 p-4 rounded-lg shadow-lg text-sm mb-6">
-          <h2 className="text-lg font-semibold mb-2">💡 How to Start a Video Call?</h2>
-          <ul className="list-disc pl-5 space-y-2 text-gray-400">
-            <li>📌 Open the sidebar to see online users.</li>
-            <li>🔍 Use the search bar to find a specific person.</li>
-            <li>🎥 Click on a user to start a video call instantly!</li>
-          </ul>
-        </div>
-        </div>)}
+            {/* Instructions */}
+            <div className="bg-gray-800 p-4 rounded-lg shadow-lg text-sm mb-6">
+              <h2 className="text-lg font-semibold mb-2">💡 How to Start a Video Call?</h2>
+              <ul className="list-disc pl-5 space-y-2 text-gray-400">
+                <li>📌 Open the sidebar to see online users.</li>
+                <li>🔍 Use the search bar to find a specific person.</li>
+                <li>🎥 Click on a user to start a video call instantly!</li>
+              </ul>
+            </div>
+          </div>
+        )}
 
         {/* Selected User Info */}
         {modalUser && (
@@ -487,43 +503,46 @@ function Dashboard() {
        )}
        {/* Incoming Call Modal */}
        {receiveCall && !callAccepted && (
-         <div className="fixed inset-0 bg-transparent bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-           <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
-             <div className="flex flex-col items-center">
-               <p className="font-black text-xl mb-2">Call From...</p>
-               <img
-                 src={caller?.profilePicture?.startsWith('/public/') 
-                   ? `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5000'}${caller.profilePicture}` 
-                   : (caller?.profilePicture || "/default-avatar.png")}
-                 alt="Caller"
-                 className="w-20 h-20 rounded-full border-4 border-green-500"
-               />
-               <h3 className="text-lg font-bold mt-3">{callerName || caller?.username}</h3>
-               <p className="text-sm text-gray-500">{caller?.email}</p>
-               <div className="flex gap-4 mt-5">
-                 <button
-                   type="button"
-                   onClick={handleAcceptCall}
-                   style={{ backgroundColor: '#22c55e', color: 'white' }}
-                   className="hover:bg-green-600 text-white px-4 py-2 rounded-lg w-28 flex gap-2 justify-center items-center transition-colors font-semibold border-none"
-                 >
-                   Accept <FaPhoneAlt />
-                 </button>
-                 <button
-                   type="button"
-                   onClick={handleRejectCall}
-                   style={{ backgroundColor: '#ef4444', color: 'white' }}
-                   className="hover:bg-red-600 text-white px-4 py-2 rounded-lg w-28 flex gap-2 justify-center items-center transition-colors font-semibold border-none"
-                 >
-                   Reject <FaPhoneSlash />
-                 </button>
-               </div>
-             </div>
-           </div>
-         </div>
-        )}
+        <div className="fixed inset-0 bg-transparent bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+            <div className="flex flex-col items-center">
+              <p className="font-black text-xl mb-2">Call From...</p>
+              <img
+                src={caller?.profilePicture?.startsWith('/public/') 
+                  ? `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5000'}${caller.profilePicture}` 
+                  : (caller?.profilePicture || "/default-avatar.png")}
+                alt="Caller"
+                className="w-20 h-20 rounded-full border-4 border-green-500"
+              />
+              <h3 className="text-lg font-bold mt-3">{callerName || caller?.username}</h3>
+              <p className="text-sm text-gray-500">{caller?.email}</p>
+              <div className="flex gap-4 mt-5">
+                <button
+                  type="button"
+                  onClick={handleAcceptCall}
+                  style={{ backgroundColor: '#22c55e', color: 'white' }}
+                  className="hover:bg-green-600 text-white px-4 py-2 rounded-lg w-28 flex gap-2 justify-center items-center transition-colors font-semibold border-none"
+                >
+                  Accept <FaPhoneAlt />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRejectCall}
+                  style={{ backgroundColor: '#ef4444', color: 'white' }}
+                  className="hover:bg-red-600 text-white px-4 py-2 rounded-lg w-28 flex gap-2 justify-center items-center transition-colors font-semibold border-none"
+                >
+                  Reject <FaPhoneSlash />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+       )}
+
       </main>
+
     </div>
+    
   );
 }
 export default Dashboard;
