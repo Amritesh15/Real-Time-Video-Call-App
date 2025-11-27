@@ -138,6 +138,16 @@ io.on("connection",(socket)=>{
         }
     });
     
+    socket.on("endCall",(data)=>{
+        const {to, from, name}=data;
+        const user=onlineUsers.find(u=>u.id===to);
+        if(user){
+            socket.to(user.socketId).emit("endCall",{from, name});
+        } else {
+            socket.to(to).emit("endCall",{from, name});
+        }
+    });
+
     socket.on("disconnect",()=>{
         const disconnectedUser=onlineUsers.find(u=>u.socketId===socket.id);
         onlineUsers=onlineUsers.filter(u=>u.socketId!==socket.id);
