@@ -96,10 +96,15 @@ io.on("connection",(socket)=>{
         const user=onlineUsers.find(u=>u.id===userToCall);
         if(user){
             socket.to(user.socketId).emit("callUser",{signal,from,name,profilePicture,email});
+            return;
         } else {
             // Fallback: try to emit to the room (user.id room)
             socket.to(userToCall).emit("callUser",{signal,from,name,profilePicture,email});
         }
+    });
+
+    socket.on("AnswerCall",(data)=>{
+        io.to(data.to).emit("callAccepted",{signal:data.signal,from: data.from});
     });
 
     socket.on("rejectCall",(data)=>{
@@ -122,6 +127,17 @@ io.on("connection",(socket)=>{
             });
         }
     });
+    
+    socket.on("AnswerCall",(data)=>{
+        const {to, signal, from, name, profilePicture, email}=data;
+        const user=onlineUsers.find(u=>u.id===to);
+        if(user){
+            socket.to(user.socketId).emit("callAccepted",{signal, from, name, profilePicture, email});
+        } else {
+            socket.to(to).emit("callAccepted",{signal, from, name, profilePicture, email});
+        }
+    });
+    
     socket.on("disconnect",()=>{
         const disconnectedUser=onlineUsers.find(u=>u.socketId===socket.id);
         onlineUsers=onlineUsers.filter(u=>u.socketId!==socket.id);

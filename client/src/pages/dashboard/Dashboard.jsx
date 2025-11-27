@@ -66,23 +66,26 @@ function Dashboard() {
           email: user.email,
         });
       });
-      peerInstance.on("stream",(receiverStream)=>{
+      peerInstance.on('stream', (remoteStream) => {
         if(receiverVideo.current){
-          receiverVideo.current.srcObject = receiverStream;
+          receiverVideo.current.srcObject = remoteStream;
           receiverVideo.current.muted = false;
           receiverVideo.current.volume = 1.0;
         }
       });
       
-      peerInstance.on('stream', (remoteStream) => {
-        if(myVideo.current){
-          myVideo.current.srcObject = remoteStream;
-          myVideo.current.play();
+      socketInstance.once("callAccepted",(data)=>{
+        setCallAccepted(true);
+        setCallRejectedPopUp(false);
+        if(data.signal){
+          peerInstance.signal(data.signal);
         }
       });
       
       connectionRef.current = peerInstance;
+      setShowReceiverDetailsPopUp(false);
     }
+  
     catch(error){
       console.error('Error starting call:', error);
     }
@@ -104,10 +107,108 @@ function Dashboard() {
     setIsSidebarOpen(true);
   };
   
-  const handleAcceptCall = () => {
+  const handleAcceptCall = async () => {
     setCallAccepted(true);
     setReceiveCall(false);
-    // TODO: Implement accept call functionality
+    setIsSidebarOpen(false);
+    
+    try{
+      const socketInstance = getSocket();
+      let currentStream = stream;
+      
+      // Check all possible sources for an existing stream
+      if(!currentStream){
+        // Check myVideo element
+        if(myVideo.current?.srcObject instanceof MediaStream){
+          const existingStream = myVideo.current.srcObject;
+          const hasActiveTracks = existingStream.getTracks().some(track => track.readyState === 'live');
+          if(hasActiveTracks){
+            currentStream = existingStream;
+          }
+        }
+        // Check receiverVideo element
+        if(!currentStream && receiverVideo.current?.srcObject instanceof MediaStream){
+          const existingStream = receiverVideo.current.srcObject;
+          const hasActiveTracks = existingStream.getTracks().some(track => track.readyState === 'live');
+          if(hasActiveTracks){
+            currentStream = existingStream;
+          }
+        }
+      }
+      
+      // Only request new media if we don't have an active stream
+      if(!currentStream){
+        try {
+          currentStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: {echoCancellation: true, noiseSuppression: true, autoGainControl: true}
+          });
+          setStream(currentStream);
+        } catch(mediaError){
+          // If device is in use, try to get audio only
+          if(mediaError.name === 'NotReadableError' || mediaError.name === 'NotAllowedError'){
+            try {
+              currentStream = await navigator.mediaDevices.getUserMedia({
+                video: false,
+                audio: {echoCancellation: true, noiseSuppression: true, autoGainControl: true}
+              });
+              setStream(currentStream);
+            } catch(audioError){
+              console.error('Could not access media devices:', audioError);
+              // Continue without stream - peer connection will still work for receiving
+              currentStream = null;
+            }
+          } else {
+            throw mediaError;
+          }
+        }
+      }
+      
+      if(currentStream){
+        if(myVideo.current){
+          myVideo.current.srcObject = currentStream;
+          myVideo.current.muted = true;
+          myVideo.current.volume = 0;
+        }
+        currentStream.getTracks().forEach(track => (track.enabled = true));
+      }
+      
+      const peerInstance = new Peer({
+        initiator: false,
+        trickle: false,
+        stream: currentStream || undefined
+      });
+      
+      peerInstance.on('signal', (data) => {
+        socketInstance.emit('AnswerCall', {
+          signal: data,
+          from: user._id,
+          name: user.username,
+          profilePicture: user.profilePicture,
+          email: user.email,
+          to: caller?._id,
+        });
+      });
+      
+      peerInstance.on('stream', (remoteStream) => {
+        if(receiverVideo.current){
+          receiverVideo.current.srcObject = remoteStream;
+          receiverVideo.current.muted = false;
+          receiverVideo.current.volume = 1.0;
+        }
+      });
+      
+      if(callerSignal){
+        peerInstance.signal(callerSignal);
+      }
+      
+      connectionRef.current = peerInstance;
+    } catch(error){
+      console.error('Error accepting call:', error);
+      // Reset states on error
+      setCallAccepted(false);
+      setReceiveCall(true);
+    }
   };
   
   const handleRejectCall = () => {
@@ -364,7 +465,7 @@ function Dashboard() {
         
   
         
-        {selectedUser ? (
+        {selectedUser || receiveCall ||  callAccepted ? (
           <div>
             <video
               ref={receiverVideo}
