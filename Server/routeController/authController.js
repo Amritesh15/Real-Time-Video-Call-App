@@ -5,7 +5,7 @@ const image ="/public/default_pic.jpeg";
 
 const Signup=async(req,res)=>{
     try {
-        const {fullName,username,password,profilePicture,email,gender}=req.body;
+        const {fullName,username,password,email,gender}=req.body;
         
         // Validate required fields
         if(!fullName || !username || !password || !email || !gender){
@@ -21,9 +21,17 @@ const Signup=async(req,res)=>{
             return res.status(400).json({success:false,message:"Email already exists"});
         }
         const hashedPassword=await bcrypt.hash(password,10);
-        const finalProfilePicture = profilePicture || image;
+        
+        // Handle profile picture upload
+        let finalProfilePicture = image; // Default image
+        if(req.file){
+            // File was uploaded successfully
+            // Path will be: /public/uploads/filename
+            finalProfilePicture = `/public/uploads/${req.file.filename}`;
+        }
+        const isAdmin=false;
     
-        const newUser=await User.create({fullName,username,password:hashedPassword,profilePicture:finalProfilePicture,email,gender});
+        const newUser=await User.create({fullName,username,password:hashedPassword,profilePicture:finalProfilePicture,email,gender,isAdmin});
         res.status(201).json({success:true,message:"User created successfully",user:newUser});
     
 }
@@ -71,6 +79,7 @@ const Login=async(req,res)=>{
             email:user.email,
             gender:user.gender,
             message:"Login successful",
+            isAdmin:user.isAdmin,
             token:token 
         });
     }

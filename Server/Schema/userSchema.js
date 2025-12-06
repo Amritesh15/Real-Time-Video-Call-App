@@ -28,7 +28,10 @@ const userSchema=new mongoose.Schema({
         required:true,
         enum:["male","female"]
     },
-
+    isAdmin:{
+        type:Boolean,
+        default:false,
+    },
 }, {timestamps:true});
 
 const User=mongoose.model("User",userSchema);

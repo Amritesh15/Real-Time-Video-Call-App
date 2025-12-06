@@ -61,6 +61,7 @@ function Auth ({type}){
             toast.success(response.data.message || 'Success!');
             if(type === 'signup'){
                 navigate('/login')
+                return;
             }
             if (type === 'login') {
                 updateUser(response.data)
@@ -69,7 +70,13 @@ function Auth ({type}){
                 const date = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
                 const expires = "expires=" + date.toUTCString();
                 document.cookie = `jwt=${response.data.token}; path=/; ${expires}`;
-                navigate('/dashboard')
+                
+                // Redirect admin users to admin page, others to dashboard
+                if(response.data.isAdmin){
+                    navigate('/admin')
+                } else {
+                    navigate('/dashboard')
+                }
             }
         } catch (error) {
             toast.error(error.response?.data?.message || 'Something went wrong!');

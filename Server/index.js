@@ -7,6 +7,7 @@ import bcrypt from "bcryptjs";
 import dbConnect from "./db/dbConnect.js";
 import authRoutes from "./Route/auth.js";
 import userRoutes from "./Route/user.js";
+import adminRoutes from "./Route/admin.js";
 import { createServer } from "http";
 import { Server } from "socket.io";
 
@@ -50,6 +51,7 @@ app.use(cookieParser());
 app.use("/public", express.static("public"));
 app.use("/api/auth",authRoutes);
 app.use("/api/user",userRoutes);
+app.use("/api/admin",adminRoutes);
 app.get("/",(req,res)=>{
     res.send("Hello World");
 });

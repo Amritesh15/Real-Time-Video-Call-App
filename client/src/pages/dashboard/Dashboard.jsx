@@ -9,6 +9,14 @@ import Peer from "simple-peer";
 function Dashboard() {
   const { user, updateUser } = useUser();
   const navigate = useNavigate();
+  
+  // Redirect admin users to admin page
+  useEffect(() => {
+    if (user?.isAdmin) {
+      navigate('/admin', { replace: true });
+    }
+  }, [user, navigate]);
+  
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -399,11 +407,11 @@ function Dashboard() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
       {/* Mobile Overlay */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 z-10 bg-black bg-opacity-50 md:hidden"
+          className="fixed inset-0 z-10 bg-black/60 backdrop-blur-sm md:hidden transition-opacity duration-300"
           onClick={() => setIsSidebarOpen(false)}
         ></div>
       )}
@@ -412,68 +420,67 @@ function Dashboard() {
         <button
           type="button"
           onClick={() => setIsSidebarOpen(true)}
-          className="fixed top-4 left-4 z-30 p-3 bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-2xl border-2 border-white/30 backdrop-blur-sm"
+          className="fixed top-4 left-4 z-30 p-3 bg-gradient-to-br from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 rounded-xl transition-all duration-300 shadow-2xl border-2 border-white/40 backdrop-blur-md transform hover:scale-110 active:scale-95"
           aria-label="Open sidebar"
           title="Open sidebar"
         >
-          <FaBars className="w-6 h-6 text-blue-500 drop-shadow-lg" />
+          <FaBars className="w-6 h-6 text-blue-400 drop-shadow-lg" />
         </button>
       )}
 
       {/* Sidebar */}
       <aside
-        className={`bg-gradient-to-br from-blue-900 to-purple-800 text-white w-64 h-screen p-4 space-y-4 fixed top-0 left-0 z-20 transition-transform ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        className={`bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 text-white w-64 h-screen p-5 space-y-4 fixed top-0 left-0 z-20 transition-all duration-300 ease-in-out shadow-2xl ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
       >
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">Users</h1>
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/20">
+          <h1 className="text-2xl font-extrabold bg-gradient-to-r from-blue-300 to-purple-300 text-transparent bg-clip-text">Users</h1>
           <button
             type="button"
-            className="bg-red-600 hover:bg-red-700 p-2 rounded-lg transition-colors flex-shrink-0 shadow-2xl border-2 border-white/30 backdrop-blur-sm"
+            className="bg-gradient-to-br from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 p-2.5 rounded-xl transition-all duration-300 flex-shrink-0 shadow-xl border-2 border-white/40 backdrop-blur-md transform hover:scale-110 active:scale-95"
             onClick={() => setIsSidebarOpen(false)}
             aria-label="Close sidebar"
             title="Close sidebar"
           >
-            <FaTimes className="w-6 h-6 text-blue-500 drop-shadow-lg" />
+            <FaTimes className="w-5 h-5 text-blue-400 drop-shadow-lg" />
           </button>
         </div>
 
         {/* Search */}
         <input
           type="text"
-          placeholder="Search user..."
+          placeholder="🔍 Search user..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full px-3 py-2 rounded-md bg-gray-800 text-white border border-gray-700 mb-2"
+          className="w-full px-4 py-3 rounded-xl bg-white/10 backdrop-blur-md text-white placeholder-white/60 border-2 border-white/20 focus:border-white/40 focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition-all duration-300 shadow-lg"
         />
 
         {/* User List */}
-        <ul className="space-y-4 overflow-y-auto max-h-[calc(100vh-200px)]">
+        <ul className="space-y-3 overflow-y-auto max-h-[calc(100vh-220px)] pr-2 custom-scrollbar">
           {filteredUsers.map((user) => (
             <li
               key={user._id}
-              className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer ${selectedUser === user._id
-                ? "bg-green-600"
-                : "bg-gradient-to-r from-purple-600 to-blue-400"
+              className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-300 transform hover:scale-105 ${selectedUser === user._id
+                ? "bg-gradient-to-r from-green-500 to-emerald-600 shadow-xl shadow-green-500/50 border-2 border-white/50"
+                : "bg-white/10 backdrop-blur-md hover:bg-white/20 border-2 border-white/20 hover:border-white/40"
                 }`}
-
               onClick={() => handelSelectedUser(user)}
             >
-              <div className="relative">
+              <div className="relative flex-shrink-0">
                 <img
                   src={user.profilePicture?.startsWith('/public/')
                     ? `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5000'}${user.profilePicture}`
                     : (user.profilePicture || "/default-avatar.png")}
                   alt={`${user.username}'s profile`}
-                  className="w-10 h-10 rounded-full border border-white"
+                  className="w-12 h-12 rounded-full border-2 border-white/50 shadow-lg object-cover"
                 />
                 {isOnlineUser(user._id) && (
-                  <span className="absolute top-0 right-0 w-3 h-3 bg-green-500 border-2 border-gray-800 rounded-full shadow-lg animate-bounce"></span>
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-green-400 to-emerald-500 border-2 border-indigo-900 rounded-full shadow-lg animate-pulse"></span>
                 )}
               </div>
-              <div className="flex flex-col">
-                <span className="font-bold text-sm">{user.username}</span>
-                <span className="text-xs text-gray-400 truncate w-32">
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="font-bold text-sm truncate">{user.username}</span>
+                <span className="text-xs text-white/70 truncate">
                   {user.email}
                 </span>
               </div>
@@ -485,111 +492,121 @@ function Dashboard() {
         {user && (
           <div
             onClick={handleLogout}
-            className="absolute bottom-4 left-4 right-4 flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 px-4 py-2 cursor-pointer rounded-lg transition-colors"
+            className="absolute bottom-4 left-4 right-4 flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 px-4 py-3 cursor-pointer rounded-xl transition-all duration-300 shadow-xl border-2 border-white/30 backdrop-blur-md transform hover:scale-105 active:scale-95"
           >
-            <FaDoorClosed />
-            <span>Logout</span>
+            <FaDoorClosed className="text-lg" />
+            <span className="font-semibold">Logout</span>
           </div>
         )}
       </aside>
 
       {/* Main Content Area */}
 
-      <main className={`flex-1 p-4 transition-all duration-300 w-full ${!isSidebarOpen ? 'ml-0' : 'md:ml-64'}`}>
+      <main className={`flex-1 p-6 transition-all duration-300 w-full ${!isSidebarOpen ? 'ml-0' : 'md:ml-64'}`}>
         {/* Welcome */}
 
 
 
         {selectedUser || receiveCall || callAccepted ? (
-          <div className='relative w-full h-screen bg-black flex items-center justify-center'>
+          <div className='relative w-full h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex items-center justify-center -m-6'>
             <video
               ref={receiverVideo}
-              className="top-0 left-0 w-full h-full object-contain rounded-lg border-2 border-white shadow-2xl z-10"
+              className="top-0 left-0 w-full h-full object-contain rounded-2xl border-4 border-white/20 shadow-2xl z-10"
               autoPlay
               playsInline
               muted
             ></video>
-            <div className="relative w-full h-screen bg-black flex items-center justify-center">
+            <div className="relative w-full h-screen bg-transparent flex items-center justify-center">
               <video
                 ref={myVideo}
-                className="fixed bottom-[75px] md:bottom-4 right-4 w-32 h-40 md:w-56 md:h-52 object-cover rounded-lg border-2 border-white shadow-2xl z-10"
+                className="fixed bottom-[75px] md:bottom-6 right-6 w-32 h-40 md:w-64 md:h-56 object-cover rounded-2xl border-4 border-white/40 shadow-2xl z-10 backdrop-blur-sm"
                 autoPlay
                 playsInline
                 muted
               ></video>
             </div>
-            <div className="absolute bottom-4 w-full flex justify-center gap-4 z-50">
+            <div className="absolute bottom-6 w-full flex justify-center gap-4 z-50">
               <button
                 type="button"
-                className="bg-red-600 hover:bg-red-700 p-4 rounded-full shadow-2xl cursor-pointer z-50 relative border-2 border-white/30 backdrop-blur-sm"
+                className="bg-gradient-to-br from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 p-5 rounded-full shadow-2xl cursor-pointer z-50 relative border-4 border-white/40 backdrop-blur-md transform hover:scale-110 active:scale-95 transition-all duration-300"
                 onClick={handleEndCall}
               >
-                <FaPhoneSlash size={24} className="text-blue-500 drop-shadow-lg" />
+                <FaPhoneSlash size={28} className="text-blue-400 drop-shadow-lg" />
               </button>
             </div>
           </div>
         ) : (
           <div>
-            <div className="flex items-center gap-5 mb-6 bg-gray-800 p-5 rounded-xl shadow-md">
-              <div className="w-20 h-20">
+            <div className="flex items-center gap-6 mb-8 bg-gradient-to-br from-white to-blue-50/50 p-8 rounded-2xl shadow-2xl border-2 border-blue-100/50 backdrop-blur-sm transform hover:scale-[1.01] transition-all duration-300">
+              <div className="w-24 h-24 text-6xl animate-bounce">
                 👋
               </div>
-              <div>
-                <h1 className="text-4xl font-extrabold bg-gradient-to-r from-blue-400 to-purple-500 text-transparent bg-clip-text">
+              <div className="flex-1">
+                <h1 className="text-5xl font-extrabold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-transparent bg-clip-text mb-3">
                   Hey {user?.username || "Guest"}! 👋
                 </h1>
-                <p className="text-lg text-gray-300 mt-2">
-                  Ready to <strong>connect with friends instantly?</strong>
-                  Just <strong>select a user</strong> and start your video call! 🎥✨
+                <p className="text-xl text-gray-700 mt-2 leading-relaxed">
+                  Ready to <strong className="text-blue-600">connect with friends instantly?</strong>
+                  <br />
+                  Just <strong className="text-purple-600">select a user</strong> and start your video call! 🎥✨
                 </p>
               </div>
             </div>
 
             {/* Instructions */}
-            <div className="bg-gray-800 p-4 rounded-lg shadow-lg text-sm mb-6">
-              <h2 className="text-lg font-semibold mb-2">💡 How to Start a Video Call?</h2>
-              <ul className="list-disc pl-5 space-y-2 text-gray-400">
-                <li>📌 Open the sidebar to see online users.</li>
-                <li>🔍 Use the search bar to find a specific person.</li>
-                <li>🎥 Click on a user to start a video call instantly!</li>
+            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 p-6 rounded-2xl shadow-xl border-2 border-indigo-100/50 backdrop-blur-sm mb-6">
+              <h2 className="text-2xl font-bold mb-4 text-gray-800 flex items-center gap-2">
+                <span className="text-3xl">💡</span> How to Start a Video Call?
+              </h2>
+              <ul className="list-none space-y-3 text-gray-700">
+                <li className="flex items-center gap-3 p-3 bg-white/60 rounded-xl backdrop-blur-sm">
+                  <span className="text-2xl">📌</span>
+                  <span className="font-semibold">Open the sidebar to see online users.</span>
+                </li>
+                <li className="flex items-center gap-3 p-3 bg-white/60 rounded-xl backdrop-blur-sm">
+                  <span className="text-2xl">🔍</span>
+                  <span className="font-semibold">Use the search bar to find a specific person.</span>
+                </li>
+                <li className="flex items-center gap-3 p-3 bg-white/60 rounded-xl backdrop-blur-sm">
+                  <span className="text-2xl">🎥</span>
+                  <span className="font-semibold">Click on a user to start a video call instantly!</span>
+                </li>
               </ul>
             </div>
           </div>
         )}
 
-        {/* Selected User Info */}
-        {modalUser && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-xl font-bold mb-2">Selected User: {modalUser.username}</h3>
-            <p className="text-gray-600">{modalUser.email}</p>
-          </div>
-        )}
 
         {showReceiverDetailsPopUp && showReceiverDetails && (
-          <div className="fixed inset-0 bg-transparent bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fadeIn">
+            <div className="bg-gradient-to-br from-white to-blue-50/80 rounded-2xl shadow-2xl max-w-md w-full p-8 border-4 border-white/50 backdrop-blur-xl transform animate-scaleIn">
               <div className="flex flex-col items-center">
-                <p className='font-black text-xl mb-2'>User Details</p>
-                <img
-                  src={showReceiverDetails?.profilePicture?.startsWith('/public/')
-                    ? `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5000'}${showReceiverDetails.profilePicture}`
-                    : (showReceiverDetails?.profilePicture || "/default-avatar.png")}
-                  alt="User"
-                  className="w-20 h-20 rounded-full border-4 border-blue-500"
-                />
-                <h3 className="text-lg font-bold mt-3">{showReceiverDetails?.username}</h3>
-                <p className="text-sm text-gray-500">{showReceiverDetails?.email}</p>
+                <p className='font-black text-2xl mb-4 bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text'>User Details</p>
+                <div className="relative mb-4">
+                  <img
+                    src={showReceiverDetails?.profilePicture?.startsWith('/public/')
+                      ? `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5000'}${showReceiverDetails.profilePicture}`
+                      : (showReceiverDetails?.profilePicture || "/default-avatar.png")}
+                    alt="User"
+                    className="w-24 h-24 rounded-full border-4 border-gradient-to-r from-blue-500 to-purple-500 shadow-2xl object-cover"
+                  />
+                  {isOnlineUser(showReceiverDetails?._id) && (
+                    <span className="absolute -bottom-1 -right-1 w-6 h-6 bg-gradient-to-r from-green-400 to-emerald-500 border-4 border-white rounded-full shadow-lg animate-pulse"></span>
+                  )}
+                </div>
+                <h3 className="text-xl font-bold mt-2 text-gray-800">{showReceiverDetails?.username}</h3>
+                <p className="text-sm text-gray-600 mt-1">{showReceiverDetails?.email}</p>
 
-                <div className="flex gap-4 mt-5">
+                <div className="flex gap-4 mt-6">
                   <button
                     onClick={() => {
                       setSelectedUser(showReceiverDetails?._id);
                       startCall();
                       setShowReceiverDetailsPopUp(false);
                     }}
-                    className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg w-28 flex items-center gap-2 justify-center transition-colors font-semibold shadow-2xl border-2 border-white/30 backdrop-blur-sm"
+                    className="bg-gradient-to-br from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 px-6 py-3 rounded-xl w-32 flex items-center gap-2 justify-center transition-all duration-300 font-bold shadow-2xl border-2 border-white/40 backdrop-blur-sm transform hover:scale-105 active:scale-95"
                   >
-                    <span className="text-white">Call</span> <FaPhoneAlt className="text-blue-500" />
+                    <span className="text-white">Call</span> <FaPhoneAlt className="text-blue-400 drop-shadow-lg" />
                   </button>
                   <button
                     onClick={() => {
@@ -598,9 +615,9 @@ function Dashboard() {
                       setSelectedUser(null);
                       setModalUser(null);
                     }}
-                    className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg w-28 flex items-center gap-2 justify-center transition-colors font-semibold shadow-2xl border-2 border-white/30 backdrop-blur-sm"
+                    className="bg-gradient-to-br from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 px-6 py-3 rounded-xl w-32 flex items-center gap-2 justify-center transition-all duration-300 font-bold shadow-2xl border-2 border-white/40 backdrop-blur-sm transform hover:scale-105 active:scale-95"
                   >
-                    <span className="text-white font-bold drop-shadow-lg">Cancel</span> <FaTimes className="text-blue-500 drop-shadow-lg" />
+                    <span className="text-white font-bold drop-shadow-lg">Cancel</span> <FaTimes className="text-blue-400 drop-shadow-lg" />
                   </button>
                 </div>
               </div>
@@ -609,27 +626,29 @@ function Dashboard() {
         )}
         {/* Call rejection PopUp */}
         {callRejectedPopUp && (
-          <div className="fixed inset-0 bg-transparent bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fadeIn">
+            <div className="bg-gradient-to-br from-white to-red-50/80 rounded-2xl shadow-2xl max-w-md w-full p-8 border-4 border-white/50 backdrop-blur-xl transform animate-scaleIn">
               <div className="flex flex-col items-center">
-                <p className="font-black text-xl mb-2">Call Rejected From...</p>
-                <img
-                  src={rejectorData?.profilePicture?.startsWith('/public/')
-                    ? `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5000'}${rejectorData.profilePicture}`
-                    : (rejectorData?.profilePicture || "/default-avatar.png")}
-                  alt="Caller"
-                  className="w-20 h-20 rounded-full border-4 border-green-500"
-                />
-                <h3 className="text-lg font-bold mt-3">{rejectorData?.name || rejectorData?.username}</h3>
-                <div className="flex gap-4 mt-5">
+                <p className="font-black text-2xl mb-4 bg-gradient-to-r from-red-600 to-orange-600 text-transparent bg-clip-text">Call Rejected From...</p>
+                <div className="relative mb-4">
+                  <img
+                    src={rejectorData?.profilePicture?.startsWith('/public/')
+                      ? `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5000'}${rejectorData.profilePicture}`
+                      : (rejectorData?.profilePicture || "/default-avatar.png")}
+                    alt="Caller"
+                    className="w-24 h-24 rounded-full border-4 border-red-500 shadow-2xl object-cover"
+                  />
+                </div>
+                <h3 className="text-xl font-bold mt-2 text-gray-800">{rejectorData?.name || rejectorData?.username}</h3>
+                <div className="flex gap-4 mt-6">
                   <button
                     type="button"
                     onClick={() => {
                       startCall();
                     }}
-                    className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg w-28 flex gap-2 justify-center items-center transition-colors font-semibold shadow-2xl border-2 border-white/30 backdrop-blur-sm"
+                    className="bg-gradient-to-br from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 px-6 py-3 rounded-xl w-36 flex gap-2 justify-center items-center transition-all duration-300 font-bold shadow-2xl border-2 border-white/40 backdrop-blur-sm transform hover:scale-105 active:scale-95"
                   >
-                    <span className="text-white">Call Again</span> <FaPhoneAlt className="text-blue-500" />
+                    <span className="text-white">Call Again</span> <FaPhoneAlt className="text-blue-400 drop-shadow-lg" />
                   </button>
                   <button
                     type="button"
@@ -637,9 +656,9 @@ function Dashboard() {
                       endCallCleanup();
                       setCallRejectedPopUp(false);
                     }}
-                    className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg w-28 flex gap-2 justify-center items-center transition-colors font-semibold shadow-2xl border-2 border-white/30 backdrop-blur-sm"
+                    className="bg-gradient-to-br from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 px-6 py-3 rounded-xl w-32 flex gap-2 justify-center items-center transition-all duration-300 font-bold shadow-2xl border-2 border-white/40 backdrop-blur-sm transform hover:scale-105 active:scale-95"
                   >
-                    <span className="text-white">Back</span> <FaPhoneSlash className="text-blue-500" />
+                    <span className="text-white">Back</span> <FaPhoneSlash className="text-blue-400 drop-shadow-lg" />
                   </button>
                 </div>
               </div>
@@ -648,33 +667,35 @@ function Dashboard() {
         )}
         {/* Incoming Call Modal */}
         {receiveCall && !callAccepted && (
-          <div className="fixed inset-0 bg-transparent bg-opacity-30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-fadeIn">
+            <div className="bg-gradient-to-br from-white to-green-50/80 rounded-2xl shadow-2xl max-w-md w-full p-8 border-4 border-white/50 backdrop-blur-xl transform animate-scaleIn animate-pulse-border">
               <div className="flex flex-col items-center">
-                <p className="font-black text-xl mb-2">Call From...</p>
-                <img
-                  src={caller?.profilePicture?.startsWith('/public/')
-                    ? `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5000'}${caller.profilePicture}`
-                    : (caller?.profilePicture || "/default-avatar.png")}
-                  alt="Caller"
-                  className="w-20 h-20 rounded-full border-4 border-green-500"
-                />
-                <h3 className="text-lg font-bold mt-3">{callerName || caller?.username}</h3>
-                <p className="text-sm text-gray-500">{caller?.email}</p>
-                <div className="flex gap-4 mt-5">
+                <p className="font-black text-2xl mb-4 bg-gradient-to-r from-green-600 to-emerald-600 text-transparent bg-clip-text animate-pulse">Incoming Call...</p>
+                <div className="relative mb-4">
+                  <img
+                    src={caller?.profilePicture?.startsWith('/public/')
+                      ? `${import.meta.env.VITE_API_BASE_URL?.replace('/api', '') || 'http://localhost:5000'}${caller.profilePicture}`
+                      : (caller?.profilePicture || "/default-avatar.png")}
+                    alt="Caller"
+                    className="w-24 h-24 rounded-full border-4 border-green-500 shadow-2xl object-cover animate-pulse"
+                  />
+                </div>
+                <h3 className="text-xl font-bold mt-2 text-gray-800">{callerName || caller?.username}</h3>
+                <p className="text-sm text-gray-600 mt-1">{caller?.email}</p>
+                <div className="flex gap-4 mt-6">
                   <button
                     type="button"
                     onClick={handleAcceptCall}
-                    className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg w-28 flex gap-2 justify-center items-center transition-colors font-semibold shadow-2xl border-2 border-white/30 backdrop-blur-sm"
+                    className="bg-gradient-to-br from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 px-6 py-3 rounded-xl w-32 flex gap-2 justify-center items-center transition-all duration-300 font-bold shadow-2xl border-2 border-white/40 backdrop-blur-sm transform hover:scale-110 active:scale-95"
                   >
-                    <span className="text-white">Accept</span> <FaPhoneAlt className="text-blue-500" />
+                    <span className="text-white">Accept</span> <FaPhoneAlt className="text-blue-400 drop-shadow-lg" />
                   </button>
                   <button
                     type="button"
                     onClick={handleRejectCall}
-                    className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg w-28 flex gap-2 justify-center items-center transition-colors font-semibold shadow-2xl border-2 border-white/30 backdrop-blur-sm"
+                    className="bg-gradient-to-br from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 px-6 py-3 rounded-xl w-32 flex gap-2 justify-center items-center transition-all duration-300 font-bold shadow-2xl border-2 border-white/40 backdrop-blur-sm transform hover:scale-110 active:scale-95"
                   >
-                    <span className="text-white">Reject</span> <FaPhoneSlash className="text-blue-500" />
+                    <span className="text-white">Reject</span> <FaPhoneSlash className="text-blue-400 drop-shadow-lg" />
                   </button>
                 </div>
               </div>
