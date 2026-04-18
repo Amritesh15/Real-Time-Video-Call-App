@@ -2,7 +2,8 @@
 
 A real-time video calling application built using React, WebRTC, Node.js/Express, and WebSockets with secure authentication and reliable peer-to-peer connectivity.
 
-🚀 Features
+🚀 Features 
+
 📞 Real-time video and audio calling using WebRTC
 ⚛️ React-based frontend for responsive UI
 🔌 WebSocket signaling for SDP and ICE exchange
